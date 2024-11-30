@@ -1,11 +1,11 @@
+globals [decided-threshold]
+
 turtles-own [opinion k stubbornness]
 
 to setup
   clear-all
 
-  if n = 0 [set n 300]
-  if k-base = 0 [set k-base 5]
-  if k-delta = 0 [set k-delta 5]
+  set decided-threshold 0.05
 
   ask patches [
     set pcolor sky
@@ -16,18 +16,12 @@ to setup
   create-turtles n [
     setxy random-xcor random-ycor
 
-    set opinion -1
+    set k random-normal 5 1
+
     ifelse not spectrum
-    [update-opinion random 2]
-    [update-opinion random-float 1]
-
-    set k k-base
-    ifelse random 2 = 0
-    [set k k + random k-delta]
-    [set k k - random k-delta]
-
-    if k < 0
-    [set k 0]
+    [set opinion random 2]
+    [set opinion random-float 1]
+    update-color
 
     set stubbornness random-float 1
   ]
@@ -37,42 +31,78 @@ end
 
 to go
   ask turtles [
-    if k > 0
+    if not spectrum or not decided
     [
-      let k-nearest min-n-of k other turtles [distance myself]
-      update-opinion one-of modes [opinion] of k-nearest
+      update-opinion
     ]
+    update-position
   ]
 
   tick
 end
 
-to update-opinion [new-opinion]
-  ifelse (opinion = -1) or (not spectrum)
-  [
-    set opinion new-opinion
-  ]
-  [
-    let middle-ground (opinion + 0.5) / 2
-    let opinion-delta (new-opinion - middle-ground) * stubbornness
-    set opinion opinion + opinion-delta
+to update-color
+  set color scale-color gray opinion 0 1
+end
 
-    if opinion < 0
-    [set opinion 0]
-    if opinion > 1
-    [set opinion 1]
+to update-opinion
+  if k > 0
+  [
+    let k-nearest min-n-of k other turtles [distance myself]
+    let other-opinions [opinion] of k-nearest
+    ifelse not spectrum
+    [
+      set opinion one-of modes other-opinions
+    ]
+    [
+      let mean-opinion mean other-opinions
+      set opinion opinion + (mean-opinion - opinion) * (1 - stubbornness)
+    ]
+    update-color
   ]
-  set color opinion * 9.9
+end
+
+to update-position
+  rt random 361
+  fd random-normal 0 0.1
+end
+
+to-report decided
+  report opinion < decided-threshold or 1 - decided-threshold < opinion
+end
+
+to-report decided-percentage
+  report count turtles with [decided] / count turtles
+end
+
+to-report black-mean
+  report mean [opinion] of turtles with [opinion < 0.5]
+end
+
+to-report black-percentage
+  report count turtles with [opinion < 0.5] / count turtles
+end
+
+to-report white-mean
+  report mean [opinion] of turtles with [opinion > 0.5]
+end
+
+to-report white-percentage
+  report count turtles with [opinion > 0.5] / count turtles
+end
+
+to-report difference-mean
+  report white-mean - black-mean
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-22
-23
-454
-456
+24
+20
+525
+522
 -1
 -1
-12.85
+14.94
 1
 10
 1
@@ -93,10 +123,10 @@ ticks
 30.0
 
 BUTTON
-124
-614
-187
-647
+162
+608
+225
+641
 NIL
 setup
 NIL
@@ -110,10 +140,10 @@ NIL
 1
 
 BUTTON
-199
-614
-262
-647
+237
+608
+300
+641
 NIL
 go
 NIL
@@ -127,58 +157,36 @@ NIL
 1
 
 SLIDER
-68
-479
-240
-512
+102
+549
+274
+582
 n
 n
 100
-500
+400
 300.0
 1
 1
 people
 HORIZONTAL
 
-INPUTBOX
-69
-534
-224
-594
-k-base
-7.0
-1
-0
-Number
-
-INPUTBOX
-238
-535
-393
-595
-k-delta
-5.0
-1
-0
-Number
-
 SWITCH
-284
-479
-390
-512
+318
+549
+424
+582
 spectrum
 spectrum
-1
+0
 1
 -1000
 
 BUTTON
-272
-615
-335
-648
+310
+609
+373
+642
 NIL
 go
 T
@@ -190,6 +198,46 @@ NIL
 NIL
 NIL
 1
+
+PLOT
+555
+20
+843
+250
+average opinions
+time
+opinion
+0.0
+0.0
+0.0
+1.0
+true
+true
+"" ""
+PENS
+"black" 1.0 0 -14737633 true "" "plot black-mean"
+"white" 1.0 0 -1513240 true "" "plot white-mean"
+"difference" 1.0 0 -2674135 true "" "plot difference-mean"
+
+PLOT
+556
+290
+843
+524
+group percentages
+time
+decided
+0.0
+10.0
+0.0
+100.0
+true
+true
+"" ""
+PENS
+"decided" 1.0 0 -2674135 true "" "plot decided-percentage * 100"
+"black" 1.0 0 -14737633 true "" "plot black-percentage * 100"
+"white" 1.0 0 -1513240 true "" "plot white-percentage * 100"
 
 @#$#@#$#@
 ## WHAT IS IT?
