@@ -226,7 +226,7 @@ PLOT
 524
 group percentages
 time
-decided
+percentages
 0.0
 10.0
 0.0
