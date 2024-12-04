@@ -1,11 +1,11 @@
 globals [decided-threshold]
 
-turtles-own [opinion k stubbornness]
+turtles-own [opinion k stubbornness decided]
 
 to setup
   clear-all
 
-  set decided-threshold 0.05
+  set decided-threshold random-normal 0.2 0.05
 
   ask patches [
     set pcolor sky
@@ -18,12 +18,16 @@ to setup
 
     set k random-normal 5 1
 
-    ifelse not spectrum
+    ifelse binary
     [set opinion random 2]
     [set opinion random-float 1]
     update-color
 
     set stubbornness random-float 1
+
+    ifelse binary
+    [set decided random-float 1 < 2 * decided-threshold]
+    [update-decided]
   ]
 
   reset-ticks
@@ -31,7 +35,7 @@ end
 
 to go
   ask turtles [
-    if not spectrum or not decided
+    if not decided
     [
       update-opinion
     ]
@@ -45,12 +49,19 @@ to update-color
   set color scale-color gray opinion 0 1
 end
 
+to update-decided
+  if not binary
+  [
+    set decided opinion < decided-threshold or 1 - decided-threshold < opinion
+  ]
+end
+
 to update-opinion
   if k > 0
   [
     let k-nearest min-n-of k other turtles [distance myself]
     let other-opinions [opinion] of k-nearest
-    ifelse not spectrum
+    ifelse binary
     [
       set opinion one-of modes other-opinions
     ]
@@ -58,6 +69,7 @@ to update-opinion
       let mean-opinion mean other-opinions
       set opinion opinion + (mean-opinion - opinion) * (1 - stubbornness)
     ]
+    update-decided
     update-color
   ]
 end
@@ -65,10 +77,6 @@ end
 to update-position
   rt random 361
   fd random-normal 0 0.1
-end
-
-to-report decided
-  report opinion < decided-threshold or 1 - decided-threshold < opinion
 end
 
 to-report decided-percentage
@@ -174,10 +182,10 @@ HORIZONTAL
 SWITCH
 318
 549
-424
+458
 582
-spectrum
-spectrum
+binary
+binary
 0
 1
 -1000
@@ -213,10 +221,10 @@ opinion
 1.0
 true
 true
-"" ""
+"set-current-plot-pen \"difference\"" "ifelse binary\n[plot-pen-up]\n[plot-pen-down]"
 PENS
 "black" 1.0 0 -14737633 true "" "plot black-mean"
-"white" 1.0 0 -1513240 true "" "plot white-mean"
+"white" 1.0 0 -4539718 true "" "plot white-mean"
 "difference" 1.0 0 -2674135 true "" "plot difference-mean"
 
 PLOT
@@ -235,9 +243,9 @@ true
 true
 "" ""
 PENS
-"decided" 1.0 0 -2674135 true "" "plot decided-percentage * 100"
 "black" 1.0 0 -14737633 true "" "plot black-percentage * 100"
-"white" 1.0 0 -1513240 true "" "plot white-percentage * 100"
+"white" 1.0 0 -4539718 true "" "plot white-percentage * 100"
+"decided" 1.0 0 -2674135 true "" "plot decided-percentage * 100"
 
 @#$#@#$#@
 ## WHAT IS IT?
